@@ -1,0 +1,12 @@
+<% if session[:message] %>
+  <p><%= session.delete(:message) %></p> 
+<% end %>
+
+<ul>
+  <% @docs.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">Edit</a>
+    </li>
+  <% end %>
+</ul>
