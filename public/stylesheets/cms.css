@@ -1,0 +1,9 @@
+body {
+  font-family: sans-serif;
+  padding: 1em;
+}
+
+.message {
+  background: #FFFF99;
+  padding: 10px;
+}
