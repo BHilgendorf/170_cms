@@ -34,12 +34,22 @@ def load_file(path)
     end
 end
 
-def invalid_name?(file)
+def empty_name?(file)
   file.to_s.length <= 0 
 end
 
 def invalid_extension?(ext)
   !(ext == ".txt" || ext == ".md")
+end
+
+def user_signed_in?
+  session.has_key?("username")
+end
+
+helpers do
+  def user_name
+    params[:username] || ""
+  end
 end
 
 get "/" do
@@ -57,9 +67,7 @@ get "/new" do
 end
 
 post "/new" do
-  # binding.pry
-
-  if invalid_name?(params[:filename])
+  if empty_name?(params[:filename])
     session[:message] = "A name is required"
     status 422
     erb :new_document
@@ -83,16 +91,23 @@ get "/:filename" do
     load_file(file_path)
   else
     session[:message] = "#{params[:filename]} does not exist"
+    status 422
     redirect "/"
   end
 end
 
 get "/:filename/edit" do
-  file_path = File.join(data_path, params[:filename])
-  @file_name = params[:filename]
-  @file_contents = File.read(file_path)
 
-  erb :edit
+  if user_signed_in?
+    file_path = File.join(data_path, params[:filename])
+    @file_name = params[:filename]
+    @file_contents = File.read(file_path)
+
+    erb :edit
+  else
+    session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
 end
 
 post "/:filename" do
@@ -103,5 +118,36 @@ post "/:filename" do
   redirect "/"
 end
 
+post "/:filename/delete" do
+  file_path = File.join(data_path, params[:filename])
+  File.delete(file_path)
+
+  session[:message] = "#{params[:filename]} has been deleted."
+  redirect "/"
+end
+
+get "/users/signin" do
+
+  erb :signin
+end
+
+post "/users/signin" do
+  if params[:username] == 'admin' && params[:password] == 'secret'
+    session[:message] = 'Welcome!'
+    session[:username] = "#{params[:username]}"
+    redirect "/"
+  else
+    session[:message] = 'Invalid Credentials'
+    status 422
+    erb :signin
+   end
+end
+
+post "/users/signout" do
+  session.delete(:username)
+
+  session[:message] = 'You have been signed out.'
+  redirect "/"
+end
 
 
