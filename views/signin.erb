@@ -1,7 +1,7 @@
 <form action="/users/signin" method="post">
   <div>
     <label for="username">Username
-      <input type="text" value="<%= user_name %>" name=username size="20" maxlength="20"/>
+      <input type="text" value="<%= params[:username] %>" name=username size="20" maxlength="20"/>
     </label>
   </div>
   <div>
