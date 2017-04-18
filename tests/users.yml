@@ -1,1 +1,8 @@
-admin: secret
+---
+admin: "$2a$10$m80uJBI2diibZikAbnPV7eg8BfJRJawyavLmHCtslvcea558nLgoi"
+testuser: !ruby/string:BCrypt::Password
+  str: "$2a$10$xyzcjixY98eHQ1GkQr83yeThM/cNZN1Y2qZF9n9UHbcsomAfwJ38C"
+  version: 2a
+  cost: 10
+  salt: "$2a$10$xyzcjixY98eHQ1GkQr83ye"
+  checksum: ThM/cNZN1Y2qZF9n9UHbcsomAfwJ38C

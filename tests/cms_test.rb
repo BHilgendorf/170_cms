@@ -36,6 +36,12 @@ class CMSTest < Minitest::Test
     { "rack.session" => {username: "admin" } }
   end
 
+  def delete_test_user(username)
+    credentials = load_credentials
+    credentials.delete(username)
+    File.open(credentials_path, 'w') { |f| YAML.dump(credentials, f)}
+  end
+
   def test_index
     create_document("about.md")
     create_document("changes.txt")
@@ -148,6 +154,7 @@ class CMSTest < Minitest::Test
 
   def test_signin_page
     get "/users/signin"
+
     assert_equal(200, last_response.status)
     assert_includes(last_response.body, "<input")
     assert_includes(last_response.body, %q(<button type="submit"))
@@ -155,6 +162,7 @@ class CMSTest < Minitest::Test
 
   def test_signin_valid_credentials
     post "/users/signin", username: "admin", password: "secret"
+
     assert_equal(302, last_response.status)
     assert_equal("Welcome!", session[:message])
     assert_equal("admin", session[:username])
@@ -162,6 +170,7 @@ class CMSTest < Minitest::Test
 
   def test_signin_invalid_credentials
     post "/users/signin", username: "John", password: "password"
+
     assert_equal(422, last_response.status)
     assert_includes(last_response.body, "Invalid Credentials")
     assert_nil(session[:username])
@@ -214,5 +223,50 @@ class CMSTest < Minitest::Test
     post "/test.txt/delete"
     assert_equal(302, last_response.status)
     assert_equal("You must be signed in to do that.", session[:message])
+  end
+
+  def test_singup_page
+    get "/users/signup"
+
+    assert_equal(200, last_response.status)
+    assert_includes(last_response.body, %q(<button type="submit"))
+  end
+
+  def test_signup_empty_username
+    post "/users/signup", username: "", password: "password"
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "Username cannot be blank")
+    assert_nil(session[:username])
+  end
+
+  def test_signup_existing_username
+    post "/users/signup", username: "admin", password: "password"
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "Username 'admin' already exists.")
+    assert_nil(session[:username])
+  end
+
+  def test_signup_successful
+    delete_test_user("testuser")
+    post "/users/signup", username: "testuser", password: "testing"
+
+    assert_equal(302, last_response.status)
+    assert_equal("Account for testuser has been created.", session[:message])
+
+    get last_response["Location"]
+    assert_equal(200, last_response.status)
+  end
+
+  def test_added_user_signin
+    delete_test_user("testuser")
+    post "/users/signup", username: "testuser", password: "testing"
+
+    post "/users/signin", username: "testuser", password: "testing"
+
+    assert_equal(302, last_response.status)
+    assert_equal("Welcome!", session[:message])
+    assert_equal("testuser", session[:username])
   end
 end

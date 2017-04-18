@@ -1,13 +1,14 @@
+<h3>Please Sign In</h3>
 <form action="/users/signin" method="post">
   <div>
-    <label for="username">Username
-      <input type="text" value="<%= params[:username] %>" name=username size="20" maxlength="20"/>
-    </label>
+    <label for="username">Username</label>
+    <input type="text" value="<%= params[:username] %>" name="username"/>
   </div>
   <div>
-    <label for="password">Password
-      <input type="text" name="password"/>
-    </label>
+    <label for="password">Password</label>
+    <input type="text" name="password"/>
   </div>
     <button type="submit">Sign In</button>
 </form>
+
+<a href="/">Index</a>
