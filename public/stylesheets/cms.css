@@ -3,8 +3,13 @@ body {
   padding: 1em;
 }
 
-.message {
-  background: #FFFF99;
+.success {
+  background: #9CD8A7;
+  padding: 10px;
+}
+
+.error {
+  background: #E88CB0;
   padding: 10px;
 }
 

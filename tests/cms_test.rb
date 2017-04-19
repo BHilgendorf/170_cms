@@ -77,7 +77,7 @@ class CMSTest < Minitest::Test
     get "/nofile.txt"
     assert_equal(302, last_response.status)
 
-    assert_equal("nofile.txt does not exist", session[:message])
+    assert_equal("nofile.txt does not exist", session[:error])
   end
 
   def test_edit_page
@@ -94,7 +94,7 @@ class CMSTest < Minitest::Test
 
     assert_equal(302, last_response.status)
 
-    assert_equal("changes.txt has been updated.", session[:message])
+    assert_equal("changes.txt has been updated.", session[:success])
 
     get "/changes.txt"
     assert_equal(200, last_response.status)
@@ -130,11 +130,19 @@ class CMSTest < Minitest::Test
     assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
   end
 
+  def test_create_new_document_with_existing_filename
+    post "/new", {filename: "test.txt"}, admin_session
+    post "/new", {filename: "test.txt"}, admin_session
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "test.txt already exists.")
+  end
+
   def test_create_new_document_with_valid_name
     post "/new", {filename: "test.txt"}, admin_session
     assert_equal(302, last_response.status)
 
-    assert_equal("test.txt was created.", session[:message])
+    assert_equal("test.txt was created.", session[:success])
 
     get "/"
     assert_includes(last_response.body, "test.txt")
@@ -146,7 +154,7 @@ class CMSTest < Minitest::Test
     post "/test.txt/delete", {}, admin_session
     assert_equal(302, last_response.status)
 
-    assert_equal("test.txt has been deleted.", session[:message])
+    assert_equal("test.txt has been deleted.", session[:success])
 
     get "/"
     refute_includes(last_response.body, %q(href="/test.txt"))
@@ -164,7 +172,7 @@ class CMSTest < Minitest::Test
     post "/users/signin", username: "admin", password: "secret"
 
     assert_equal(302, last_response.status)
-    assert_equal("Welcome!", session[:message])
+    assert_equal("Welcome!", session[:success])
     assert_equal("admin", session[:username])
   end
 
@@ -192,7 +200,7 @@ class CMSTest < Minitest::Test
     create_document("test.txt")
     get "/test.txt/edit"
 
-    assert_equal("You must be signed in to do that.", session[:message])
+    assert_equal("You must be signed in to do that.", session[:error])
     assert_equal(302, last_response.status)
   end
 
@@ -200,21 +208,21 @@ class CMSTest < Minitest::Test
     post "/changes.txt"
 
     assert_equal(302, last_response.status)
-    assert_equal("You must be signed in to do that.", session[:message])
+    assert_equal("You must be signed in to do that.", session[:error])
   end
 
   def test_signed_out_user_cannot_view_new_document_page
     get "/new"
 
     assert_equal(302, last_response.status)
-    assert_equal("You must be signed in to do that.", session[:message])
+    assert_equal("You must be signed in to do that.", session[:error])
   end
 
   def test_signed_out_user_cannot_submit_new_document
     post "/new", filename: "test.txt"
 
     assert_equal(302, last_response.status)
-    assert_equal("You must be signed in to do that.", session[:message])
+    assert_equal("You must be signed in to do that.", session[:error])
   end
 
   def test_signed_out_user_cannot_delete_file
@@ -222,7 +230,7 @@ class CMSTest < Minitest::Test
 
     post "/test.txt/delete"
     assert_equal(302, last_response.status)
-    assert_equal("You must be signed in to do that.", session[:message])
+    assert_equal("You must be signed in to do that.", session[:error])
   end
 
   def test_singup_page
@@ -253,7 +261,7 @@ class CMSTest < Minitest::Test
     post "/users/signup", username: "testuser", password: "testing"
 
     assert_equal(302, last_response.status)
-    assert_equal("Account for testuser has been created.", session[:message])
+    assert_equal("Account for testuser has been created.", session[:success])
 
     get last_response["Location"]
     assert_equal(200, last_response.status)
@@ -266,7 +274,7 @@ class CMSTest < Minitest::Test
     post "/users/signin", username: "testuser", password: "testing"
 
     assert_equal(302, last_response.status)
-    assert_equal("Welcome!", session[:message])
+    assert_equal("Welcome!", session[:success])
     assert_equal("testuser", session[:username])
   end
 end

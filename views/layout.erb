@@ -3,9 +3,14 @@
     <link rel="stylesheet" href="/stylesheets/cms.css" type="text/css"/>
   
   <body>
-    <% if session[:message] %>
-      <p class="message"><%= session.delete(:message) %></p> 
+    <% if session[:success] %>
+      <p class = "success"><%= session.delete(:success) %></p> 
     <% end %>
-    <%= yield %>
+
+    <% if session[:error] %>
+      <p class="error"><%= session.delete(:error) %></p>
+    <% end %>
+
+    <%== yield %>
   </body>
 </html>

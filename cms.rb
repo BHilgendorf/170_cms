@@ -9,6 +9,7 @@ require "bcrypt"
 configure do
   enable :sessions
   set :session_secret, 'secret'
+  set :erb, escape_html: true
 end
 
 def render_markdown(text)
@@ -35,8 +36,20 @@ def load_file(path)
   end
 end
 
+def load_file_list
+  pattern = File.join(data_path, "*")
+
+  @docs = Dir.glob(pattern)
+  @docs.map! { |file| File.basename(file) }
+end
+
 def empty_file_name?(file)
   file.to_s.length <= 0
+end
+
+def existing_filename?(file)
+  files = load_file_list
+  files.include?(file.downcase)
 end
 
 def invalid_extension?(ext)
@@ -71,10 +84,10 @@ def user_signed_in?
 end
 
 def require_sign_in
-  unless user_signed_in?
-    session[:message] = "You must be signed in to do that."
-    redirect "/"
-  end
+  return true if user_signed_in?
+
+  session[:error] = "You must be signed in to do that."
+  redirect "/"
 end
 
 def empty_username?(username)
@@ -94,12 +107,9 @@ def add_new_user(username, password)
   File.write(credentials_path, output)
 end
 
+
 get "/" do
-  pattern = File.join(data_path, "*")
-
-  @docs = Dir.glob(pattern)
-  @docs.map! { |file| File.basename(file) }
-
+  load_file_list
   erb :index
 end
 
@@ -111,20 +121,24 @@ end
 
 post "/new" do
   require_sign_in
+  file_name = File.basename(params[:filename])
 
-  if empty_file_name?(params[:filename])
-    session[:message] = "A name is required"
+  if empty_file_name?(file_name)
+    session[:error] = "A name is required"
     status 422
     erb :new_document
-  elsif invalid_extension?(File.extname(params[:filename]))
-    session[:message] = "Document must be either a '.txt' or '.md' file."
+  elsif existing_filename?(file_name)
+    session[:error] = "#{file_name} already exists."
+    status 422
+    erb :new_document
+  elsif invalid_extension?(File.extname(file_name))
+    session[:error] = "Document must be either a '.txt' or '.md' file."
     status 422
     erb :new_document
   else
-    file_path = File.join(data_path, params[:filename])
+    file_path = File.join(data_path, file_name)
     File.write(file_path, "")
-
-    session[:message] = "#{params[:filename]} was created."
+    session[:success] = "#{params[:filename]} was created."
     redirect "/"
   end
 end
@@ -135,7 +149,7 @@ get "/:filename" do
   if File.exist?(file_path)
     load_file(file_path)
   else
-    session[:message] = "#{params[:filename]} does not exist"
+    session[:error] = "#{params[:filename]} does not exist"
     redirect "/"
   end
 end
@@ -156,7 +170,7 @@ post "/:filename" do
   file_path = File.join(data_path, File.basename(params[:filename]))
   File.write(file_path, params[:content])
 
-  session[:message] = "#{params[:filename]} has been updated."
+  session[:success] = "#{params[:filename]} has been updated."
   redirect "/"
 end
 
@@ -166,7 +180,7 @@ post "/:filename/delete" do
   file_path = File.join(data_path, File.basename(params[:filename]))
   File.delete(file_path)
 
-  session[:message] = "#{params[:filename]} has been deleted."
+  session[:success] = "#{params[:filename]} has been deleted."
   redirect "/"
 end
 
@@ -177,11 +191,11 @@ end
 post "/users/signin" do
   username = params[:username]
   if valid_credentials?(username, params[:password])
-    session[:message] = 'Welcome!'
+    session[:success] = 'Welcome!'
     session[:username] = username
     redirect "/"
   else
-    session[:message] = 'Invalid Credentials'
+    session[:error] = 'Invalid Credentials'
     status 422
     erb :signin
   end
@@ -190,7 +204,7 @@ end
 post "/users/signout" do
   session.delete(:username)
 
-  session[:message] = 'You have been signed out.'
+  session[:success] = 'You have been signed out.'
   redirect "/"
 end
 
@@ -200,18 +214,18 @@ end
 
 post "/users/signup" do
   if empty_username?(params[:username])
-    session[:message] = "Username cannot be blank"
+    session[:error] = "Username cannot be blank"
     status 422
     erb :signup
   elsif existing_username?(params[:username])
-    session[:message] = "Username '#{params[:username]}' already exists."
+    session[:error] = "Username '#{params[:username]}' already exists."
     status 422
     erb :signup
   else
     bcrypt_password = BCrypt::Password.create(params[:password])
     add_new_user(params[:username], bcrypt_password)
 
-    session[:message] = "Account for #{params[:username]} has been created."
+    session[:success] = "Account for #{params[:username]} has been created."
     redirect "/"
   end
 end
