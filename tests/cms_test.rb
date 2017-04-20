@@ -15,7 +15,7 @@ class CMSTest < Minitest::Test
   end
 
   def setup
-    FileUtils.mkdir_p(data_path)  #data_path method available since defined in global scope 
+    FileUtils.mkdir_p(data_path)
   end
 
   def teardown
@@ -42,7 +42,7 @@ class CMSTest < Minitest::Test
     File.open(credentials_path, 'w') { |f| YAML.dump(credentials, f)}
   end
 
-  def test_index
+  def test_index_page
     create_document("about.md")
     create_document("changes.txt")
 
@@ -109,25 +109,19 @@ class CMSTest < Minitest::Test
     assert_includes(last_response.body, %q(<button type="submit"))
   end
 
-  def test_create_new_document_with_blank_name
+  def test_create_new_document_with_blank_filename
     post "/new", {filename: ""}, admin_session
 
     assert_equal(422, last_response.status)
     assert_includes(last_response.body, "A name is required")
   end
 
-  def test_create_new_document_with_no_extension
-    post "/new", {filename: "test"}, admin_session
+  def test_create_new_document_with_invalid_characters
+    post "/new", {filename: "t3&t/test.txt"}, admin_session
 
     assert_equal(422, last_response.status)
-    assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
-  end
-
-  def test_create_new_document_with_invalid_extension
-    post "/new", {filename: "test.pdf"}, admin_session
-
-    assert_equal(422, last_response.status)
-    assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
+    message = "Document name may contain letters, numbers and . _ or - only."
+    assert_includes(last_response.body, message)
   end
 
   def test_create_new_document_with_existing_filename
@@ -146,6 +140,20 @@ class CMSTest < Minitest::Test
 
     get "/"
     assert_includes(last_response.body, "test.txt")
+  end
+
+  def test_create_new_document_with_no_extension
+    post "/new", {filename: "test"}, admin_session
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
+  end
+
+  def test_create_new_document_with_invalid_extension
+    post "/new", {filename: "test.pdf"}, admin_session
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
   end
 
   def test_delete_document

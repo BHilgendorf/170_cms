@@ -36,24 +36,34 @@ def load_file(path)
   end
 end
 
-def load_file_list
-  pattern = File.join(data_path, "*")
-
-  @docs = Dir.glob(pattern)
-  @docs.map! { |file| File.basename(file) }
-end
-
 def empty_file_name?(file)
-  file.to_s.length <= 0
-end
+  "A name is required" if file.to_s.length <= 0
+  end
 
 def existing_filename?(file)
   files = load_file_list
-  files.include?(file.downcase)
+  "#{file} already exists." if files.include?(file.downcase)
 end
 
 def invalid_extension?(ext)
+  "Document must be either a '.txt' or '.md' file." if
   !(ext == ".txt" || ext == ".md")
+end
+
+def invalid_characters?(filename)
+  "Document name may contain letters, numbers and . _ or - only." if
+  filename.match(/[^A-Za-z0-9._-]/) ? true : false
+end
+
+def invalid_file?(filename)
+  error_message =  empty_file_name?(filename)
+    return error_message if error_message
+  error_message = existing_filename?(filename)
+    return error_message if error_message
+  error_message = invalid_extension?(File.extname(filename))
+    return error_message if error_message
+  error_message = invalid_characters?(filename)
+    return error_message if error_message
 end
 
 def credentials_path
@@ -108,6 +118,13 @@ def add_new_user(username, password)
 end
 
 
+helpers do
+  def load_file_list
+    pattern = File.join(data_path, "*")
+    Dir.glob(pattern).map { |file| File.basename(file) }
+  end
+end
+
 get "/" do
   load_file_list
   erb :index
@@ -121,19 +138,12 @@ end
 
 post "/new" do
   require_sign_in
-  file_name = File.basename(params[:filename])
+  file_name = (params[:filename])
 
-  if empty_file_name?(file_name)
-    session[:error] = "A name is required"
+  error_message = invalid_file?(file_name)
+  if error_message
     status 422
-    erb :new_document
-  elsif existing_filename?(file_name)
-    session[:error] = "#{file_name} already exists."
-    status 422
-    erb :new_document
-  elsif invalid_extension?(File.extname(file_name))
-    session[:error] = "Document must be either a '.txt' or '.md' file."
-    status 422
+    session[:error] = error_message
     erb :new_document
   else
     file_path = File.join(data_path, file_name)
@@ -141,6 +151,29 @@ post "/new" do
     session[:success] = "#{params[:filename]} was created."
     redirect "/"
   end
+
+  # if empty_file_name?(file_name)
+  #   session[:error] = "A name is required"
+  #   status 422
+  #   erb :new_document
+  # elsif existing_filename?(file_name)
+  #   session[:error] = "#{file_name} already exists."
+  #   status 422
+  #   erb :new_document
+  # elsif invalid_extension?(File.extname(file_name))
+  #   session[:error] = "Document must be either a '.txt' or '.md' file."
+  #   status 422
+  #   erb :new_document
+  # elsif invalid_characters?(params[:filename])
+  #   session[:error] = "Document name may contain letters, numbers and . _ or - only."
+  #   status 422
+  #   erb :new_document
+  # else
+  #   file_path = File.join(data_path, file_name)
+  #   File.write(file_path, "")
+  #   session[:success] = "#{params[:filename]} was created."
+  #   redirect "/"
+  # end
 end
 
 get "/:filename" do
