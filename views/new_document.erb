@@ -1,10 +1,17 @@
+<h4>Create New Document</h4>
 <form action="/new" method="post">
-  <label for="filename">Add a new document:</label>
-  <div>
-    <input type="text" name="filename" size="30" maxlength="30"/>
+<div>
+  <label for="filename">Document Name:</label>
+  <input type="text" name="filename" size="30" maxlength="30"/>
+</div>
+<div>
+  <textarea rows = "20" cols = "70" name="content"><%= params[:content] || @file_contents %></textarea>
+</div>
     <button type="submit">Create</button>
-  </div>
+
 </form>
 
+<form action="/" method="get">
+  <button type="submit">Cancel</button>
+</form>
 
-<a href="/">Index</a>

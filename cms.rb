@@ -9,8 +9,9 @@ require "bcrypt"
 configure do
   enable :sessions
   set :session_secret, 'secret'
-  set :erb, escape_html: true
 end
+
+VALID_EXTENSIONS = ['.md', '.txt']
 
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -45,9 +46,9 @@ def existing_filename?(file)
   "#{file} already exists." if files.include?(file.downcase)
 end
 
-def invalid_extension?(ext)
+def invalid_extension?(extension)
   "Document must be either a '.txt' or '.md' file." if
-  !(ext == ".txt" || ext == ".md")
+  !VALID_EXTENSIONS.include?(extension)
 end
 
 def invalid_characters?(filename)
@@ -147,7 +148,7 @@ post "/new" do
     erb :new_document
   else
     file_path = File.join(data_path, file_name)
-    File.write(file_path, "")
+    File.write(file_path, params[:content] || "")
     session[:success] = "#{params[:filename]} was created."
     redirect "/"
   end
@@ -216,6 +217,22 @@ post "/:filename/delete" do
   session[:success] = "#{params[:filename]} has been deleted."
   redirect "/"
 end
+
+get "/:filename/copy" do
+  require_sign_in
+
+  file_path = File.join(data_path, File.basename(params[:filename]))
+  if File.exists?(file_path)
+    @file_name = File.basename(params[:filename])
+    @file_contents = File.read(file_path)
+    
+    erb :new_document
+  else
+    session[:error] = "#{params[:filename]} does not exist"
+    redirect "/"
+  end
+end
+
 
 get "/users/signin" do
   erb :signin

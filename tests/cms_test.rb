@@ -42,6 +42,7 @@ class CMSTest < Minitest::Test
     File.open(credentials_path, 'w') { |f| YAML.dump(credentials, f)}
   end
 
+# ------- Test Index Page ------------------
   def test_index_page
     create_document("about.md")
     create_document("changes.txt")
@@ -54,6 +55,7 @@ class CMSTest < Minitest::Test
 
   end
 
+# ---------- Test View Files --------------------
   def test_view_text_file
     create_document("history.txt", "2001: 20th Anniversary")
     get "/history.txt"
@@ -80,6 +82,7 @@ class CMSTest < Minitest::Test
     assert_equal("nofile.txt does not exist", session[:error])
   end
 
+# ------------ Tests for editting document  --------------------
   def test_edit_page
     create_document("changes.txt")
     get "/changes.txt/edit", {}, admin_session
@@ -101,6 +104,7 @@ class CMSTest < Minitest::Test
     assert_includes(last_response.body, "edited content")
   end
 
+# --------- Tests for New Document creation -----------------
   def test_get_new_document_page
     get "/new", {}, admin_session
 
@@ -156,6 +160,17 @@ class CMSTest < Minitest::Test
     assert_includes(last_response.body, "Document must be either a '.txt' or '.md' file.")
   end
 
+  def test_create_document_with_contents_retains_contents_if_filename_error_message
+    post "/new", {filname: "", content: "sample"}, admin_session
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "A name is required")
+    assert_includes(last_response.body, "sample")
+
+  end
+
+# ----------- Tests for deleteing document
+
   def test_delete_document
     create_document("test.txt")
 
@@ -168,42 +183,18 @@ class CMSTest < Minitest::Test
     refute_includes(last_response.body, %q(href="/test.txt"))
   end
 
-  def test_signin_page
-    get "/users/signin"
+# ------ Tests for copy document -------------
 
-    assert_equal(200, last_response.status)
-    assert_includes(last_response.body, "<input")
-    assert_includes(last_response.body, %q(<button type="submit"))
-  end
-
-  def test_signin_valid_credentials
-    post "/users/signin", username: "admin", password: "secret"
+  def test_copy_nonexistent_file
+    get "/nofile.txt/copy", {}, admin_session
 
     assert_equal(302, last_response.status)
-    assert_equal("Welcome!", session[:success])
-    assert_equal("admin", session[:username])
+    assert_equal("nofile.txt does not exist", session[:error])
   end
 
-  def test_signin_invalid_credentials
-    post "/users/signin", username: "John", password: "password"
 
-    assert_equal(422, last_response.status)
-    assert_includes(last_response.body, "Invalid Credentials")
-    assert_nil(session[:username])
-  end
 
-  def test_signout
-    get "/", {}, {"rack.session" => {username: "admin"} }
-    assert_includes(last_response.body, "Signed in as admin")
-
-    post "/users/signout"
-    get last_response["Location"]
-
-    assert_nil(session[:username])
-    assert_includes(last_response.body, "You have been signed out.")
-    assert_includes(last_response.body, "Sign In")
-  end
-
+# ------- Tests for Signed Out Users -----------------------------------
   def test_signed_out_user_cannot_visit_edit_page
     create_document("test.txt")
     get "/test.txt/edit"
@@ -240,6 +231,15 @@ class CMSTest < Minitest::Test
     assert_equal(302, last_response.status)
     assert_equal("You must be signed in to do that.", session[:error])
   end
+
+  def test_signed_out_user_cannot_copy_file
+    get "/test.txt/copy"
+
+    assert_equal(302, last_response.status)
+    assert_equal("You must be signed in to do that.", session[:error])
+  end
+
+# -----------Test for user signup and sign in----------------------------------
 
   def test_singup_page
     get "/users/signup"
@@ -284,5 +284,43 @@ class CMSTest < Minitest::Test
     assert_equal(302, last_response.status)
     assert_equal("Welcome!", session[:success])
     assert_equal("testuser", session[:username])
+  end
+
+# -------------Tests for sign in and sign out ----------------------------
+
+  def test_signin_page
+    get "/users/signin"
+
+    assert_equal(200, last_response.status)
+    assert_includes(last_response.body, "<input")
+    assert_includes(last_response.body, %q(<button type="submit"))
+  end
+
+  def test_signin_valid_credentials
+    post "/users/signin", username: "admin", password: "secret"
+
+    assert_equal(302, last_response.status)
+    assert_equal("Welcome!", session[:success])
+    assert_equal("admin", session[:username])
+  end
+
+  def test_signin_invalid_credentials
+    post "/users/signin", username: "John", password: "password"
+
+    assert_equal(422, last_response.status)
+    assert_includes(last_response.body, "Invalid Credentials")
+    assert_nil(session[:username])
+  end
+
+  def test_signout
+    get "/", {}, {"rack.session" => {username: "admin"} }
+    assert_includes(last_response.body, "Signed in as admin")
+
+    post "/users/signout"
+    get last_response["Location"]
+
+    assert_nil(session[:username])
+    assert_includes(last_response.body, "You have been signed out.")
+    assert_includes(last_response.body, "Sign In")
   end
 end

@@ -6,12 +6,16 @@
       <form class="inline" method="post" action="/<%= file %>/delete">
         <button type="submit">Delete</button>
       </form>
+
+      <form class="inline" method="get" action="/<%= file %>/copy">
+        <button type="submit">Copy to new document</button>
+      </form>
     </li>
   <% end %>
   </ul>
 
   <div>
-    <a href="/new">New Document</a>
+    <a href="/new">Create New Document</a>
   </div>
 
 <% if session[:username] %>
