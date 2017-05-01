@@ -1,6 +1,6 @@
 <html>
   <title>CMS System</title>
-    <link rel="stylesheet" href="/stylesheets/cms.css" type="text/css"/>
+  <link rel="stylesheet" href="/stylesheets/cms.css" type="text/css"/>
   
   <body>
     <% if session[:success] %>
@@ -11,6 +11,6 @@
       <p class="error"><%= session.delete(:error) %></p>
     <% end %>
 
-    <%= yield %>
+    <%== yield %>
   </body>
 </html>

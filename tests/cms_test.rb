@@ -124,7 +124,7 @@ class CMSTest < Minitest::Test
     post "/new", {filename: "t3&t/test.txt"}, admin_session
 
     assert_equal(422, last_response.status)
-    message = "Document name may contain letters, numbers and . _ or - only."
+    message = "Name may contain letters, numbers and . _ or - only."
     assert_includes(last_response.body, message)
   end
 
@@ -165,7 +165,7 @@ class CMSTest < Minitest::Test
 
     assert_equal(422, last_response.status)
     assert_includes(last_response.body, "A name is required")
-    assert_includes(last_response.body, "sample")
+    assert_includes(last_response.body, "")
 
   end
 
@@ -264,6 +264,15 @@ class CMSTest < Minitest::Test
     assert_nil(session[:username])
   end
 
+  def test_signup_with_invalid_characters
+    post "/users/signup", username: "<bob*&", password: "password"
+
+    assert_equal(422, last_response.status)
+    message = "Name may contain letters, numbers and . _ or - only."
+    assert_includes(last_response.body, message)
+    assert_nil(session[:username])
+  end
+
   def test_signup_successful
     delete_test_user("testuser")
     post "/users/signup", username: "testuser", password: "testing"
@@ -275,6 +284,8 @@ class CMSTest < Minitest::Test
     assert_equal(200, last_response.status)
   end
 
+  # -------------Tests for sign in and sign out ----------------------------
+
   def test_added_user_signin
     delete_test_user("testuser")
     post "/users/signup", username: "testuser", password: "testing"
@@ -285,8 +296,6 @@ class CMSTest < Minitest::Test
     assert_equal("Welcome!", session[:success])
     assert_equal("testuser", session[:username])
   end
-
-# -------------Tests for sign in and sign out ----------------------------
 
   def test_signin_page
     get "/users/signin"

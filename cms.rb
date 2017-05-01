@@ -9,6 +9,7 @@ require "bcrypt"
 configure do
   enable :sessions
   set :session_secret, 'secret'
+  set :erb, escape_html: true
 end
 
 VALID_EXTENSIONS = ['.md', '.txt']
@@ -38,33 +39,32 @@ def load_file(path)
 end
 
 def empty_file_name?(file)
-  "A name is required" if file.to_s.length <= 0
-  end
+  file.to_s.length <= 0
+end
 
 def existing_filename?(file)
   files = load_file_list
-  "#{file} already exists." if files.include?(file.downcase)
+  files.include?(file.downcase)
 end
 
 def invalid_extension?(extension)
-  "Document must be either a '.txt' or '.md' file." if
   !VALID_EXTENSIONS.include?(extension)
 end
 
 def invalid_characters?(filename)
-  "Document name may contain letters, numbers and . _ or - only." if
-  filename.match(/[^A-Za-z0-9._-]/) ? true : false
+  filename.match(/[^A-Za-z0-9._-]/)
 end
 
 def invalid_file?(filename)
-  error_message =  empty_file_name?(filename)
-    return error_message if error_message
-  error_message = existing_filename?(filename)
-    return error_message if error_message
-  error_message = invalid_extension?(File.extname(filename))
-    return error_message if error_message
-  error_message = invalid_characters?(filename)
-    return error_message if error_message
+  if empty_file_name?(filename)
+    "A name is required"
+  elsif existing_filename?(filename)
+    "#{filename} already exists."
+  elsif invalid_extension?(File.extname(filename))
+    "Document must be either a '.txt' or '.md' file."
+  elsif invalid_characters?(filename)
+    "Name may contain letters, numbers and . _ or - only."
+  end
 end
 
 def credentials_path
@@ -118,6 +118,15 @@ def add_new_user(username, password)
   File.write(credentials_path, output)
 end
 
+def invalid_user_signup?(username)
+  if empty_username?(username)
+    "Username cannot be blank"
+  elsif existing_username?(username)
+    "Username '#{username}' already exists."
+  elsif invalid_characters?(username)
+    "Name may contain letters, numbers and . _ or - only."
+  end
+end
 
 helpers do
   def load_file_list
@@ -126,20 +135,21 @@ helpers do
   end
 end
 
+# Get Index Page -----------------------
 get "/" do
   load_file_list
   erb :index
 end
 
+#  New Document -----------------------
 get "/new" do
   require_sign_in
-
   erb :new_document
 end
 
 post "/new" do
   require_sign_in
-  file_name = (params[:filename])
+  file_name = params[:filename]
 
   error_message = invalid_file?(file_name)
   if error_message
@@ -152,31 +162,9 @@ post "/new" do
     session[:success] = "#{params[:filename]} was created."
     redirect "/"
   end
-
-  # if empty_file_name?(file_name)
-  #   session[:error] = "A name is required"
-  #   status 422
-  #   erb :new_document
-  # elsif existing_filename?(file_name)
-  #   session[:error] = "#{file_name} already exists."
-  #   status 422
-  #   erb :new_document
-  # elsif invalid_extension?(File.extname(file_name))
-  #   session[:error] = "Document must be either a '.txt' or '.md' file."
-  #   status 422
-  #   erb :new_document
-  # elsif invalid_characters?(params[:filename])
-  #   session[:error] = "Document name may contain letters, numbers and . _ or - only."
-  #   status 422
-  #   erb :new_document
-  # else
-  #   file_path = File.join(data_path, file_name)
-  #   File.write(file_path, "")
-  #   session[:success] = "#{params[:filename]} was created."
-  #   redirect "/"
-  # end
 end
 
+# Display Existing File -------------------------
 get "/:filename" do
   file_path = File.join(data_path, File.basename(params[:filename]))
 
@@ -188,6 +176,7 @@ get "/:filename" do
   end
 end
 
+# Edit Existing File -----------------------------
 get "/:filename/edit" do
   require_sign_in
 
@@ -208,6 +197,7 @@ post "/:filename" do
   redirect "/"
 end
 
+# Delete Existing File ----------------------------------
 post "/:filename/delete" do
   require_sign_in
 
@@ -218,14 +208,15 @@ post "/:filename/delete" do
   redirect "/"
 end
 
+# Copy Existing File ------------------------------------
 get "/:filename/copy" do
   require_sign_in
 
   file_path = File.join(data_path, File.basename(params[:filename]))
-  if File.exists?(file_path)
+  if File.exist?(file_path)
     @file_name = File.basename(params[:filename])
     @file_contents = File.read(file_path)
-    
+
     erb :new_document
   else
     session[:error] = "#{params[:filename]} does not exist"
@@ -233,7 +224,7 @@ get "/:filename/copy" do
   end
 end
 
-
+# Existing User Sign in -------------------------------------------
 get "/users/signin" do
   erb :signin
 end
@@ -251,6 +242,7 @@ post "/users/signin" do
   end
 end
 
+# Existing User Sign Out -----------------------
 post "/users/signout" do
   session.delete(:username)
 
@@ -258,24 +250,22 @@ post "/users/signout" do
   redirect "/"
 end
 
+# New User Signup -------------------------------
 get "/users/signup" do
   erb :signup
 end
 
 post "/users/signup" do
-  if empty_username?(params[:username])
-    session[:error] = "Username cannot be blank"
+  error_message = invalid_user_signup?(params[:username])
+  if error_message
     status 422
-    erb :signup
-  elsif existing_username?(params[:username])
-    session[:error] = "Username '#{params[:username]}' already exists."
-    status 422
+    session[:error] = error_message
     erb :signup
   else
     bcrypt_password = BCrypt::Password.create(params[:password])
     add_new_user(params[:username], bcrypt_password)
 
     session[:success] = "Account for #{params[:username]} has been created."
-    redirect "/"
+    redirect "/users/signin"
   end
 end
