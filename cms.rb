@@ -27,6 +27,10 @@ def data_path
   end
 end
 
+def load_file_path
+  file_path = File.join(data_path, File.basename(params[:filename]))
+end
+
 def load_file(path)
   contents = File.read(path)
   case File.extname(path)
@@ -85,20 +89,11 @@ def valid_credentials?(username, password)
   if credentials.key?(username)
     bcrypt_password = BCrypt::Password.new(credentials[username])
     bcrypt_password == password
-  else
-    false
   end
 end
 
 def user_signed_in?
   session.key?(:username)
-end
-
-def require_sign_in
-  return true if user_signed_in?
-
-  session[:error] = "You must be signed in to do that."
-  redirect "/"
 end
 
 def empty_username?(username)
@@ -108,14 +103,6 @@ end
 def existing_username?(username)
   credentials = load_credentials
   credentials.key?(username)
-end
-
-def add_new_user(username, password)
-  users = load_credentials
-  users[username] = password
-
-  output = YAML.dump(users)
-  File.write(credentials_path, output)
 end
 
 def invalid_user_signup?(username)
@@ -128,12 +115,28 @@ def invalid_user_signup?(username)
   end
 end
 
+def add_new_user(username, password)
+  users = load_credentials
+  users[username] = password
+
+  output = YAML.dump(users)
+  File.write(credentials_path, output)
+end
+
+def require_sign_in
+  return if user_signed_in?
+
+  session[:error] = "You must be signed in to do that."
+  redirect "/"
+end
+
 helpers do
   def load_file_list
     pattern = File.join(data_path, "*")
     Dir.glob(pattern).map { |file| File.basename(file) }
   end
 end
+
 
 # Get Index Page -----------------------
 get "/" do
@@ -166,7 +169,7 @@ end
 
 # Display Existing File -------------------------
 get "/:filename" do
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  file_path = load_file_path
 
   if File.exist?(file_path)
     load_file(file_path)
@@ -180,7 +183,7 @@ end
 get "/:filename/edit" do
   require_sign_in
 
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  file_path = load_file_path
   @file_name = File.basename(params[:filename])
   @file_contents = File.read(file_path)
 
@@ -190,7 +193,7 @@ end
 post "/:filename" do
   require_sign_in
 
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  file_path = load_file_path
   File.write(file_path, params[:content])
 
   session[:success] = "#{params[:filename]} has been updated."
@@ -201,7 +204,7 @@ end
 post "/:filename/delete" do
   require_sign_in
 
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  file_path = load_file_path
   File.delete(file_path)
 
   session[:success] = "#{params[:filename]} has been deleted."
@@ -212,7 +215,7 @@ end
 get "/:filename/copy" do
   require_sign_in
 
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  file_path = load_file_path
   if File.exist?(file_path)
     @file_name = File.basename(params[:filename])
     @file_contents = File.read(file_path)
