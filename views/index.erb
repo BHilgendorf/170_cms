@@ -1,22 +1,28 @@
-  <ul>
+<ul>
   <% load_file_list.each do |file| %>
     <li>
-      <a href="/<%= file %>"><%= file %></a>
-      <a href="/<%= file %>/edit">Edit</a>
-      <form class="inline" method="post" action="/<%= file %>/delete">
-        <button type="submit">Delete</button>
-      </form>
+    <a href="/<%= file %>"><%= file %></a>
+    <a href="/<%= file %>/edit">Edit</a>
 
-      <form class="inline" method="get" action="/<%= file %>/copy">
-        <button type="submit">Copy to new document</button>
-      </form>
+    <form class="inline" method="post" action="/<%= file %>/delete">
+      <button type="submit">Delete</button>
+    </form>
+
+    <form class="inline" method="get" action="/<%= file %>/copy">
+      <button type="submit">Copy to new document</button>
+    </form>
+
     </li>
   <% end %>
-  </ul>
+</ul>
 
-  <div>
-    <a href="/new">Create New Document</a>
-  </div>
+<div>
+  <a href="/new">Create New Document</a>
+</div>
+
+<div>
+  <a href="/upload">Upload Photo</a>
+</div>
 
 <% if session[:username] %>
   <form method="post" action="/users/signout">

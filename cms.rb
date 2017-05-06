@@ -1,9 +1,10 @@
 require "sinatra"
-require "sinatra/reloader"
+require "sinatra/reloader" if development?
 require "tilt/erubis"
 require "redcarpet"
 require "yaml"
 require "bcrypt"
+require "sanitize"
 # require 'pry'
 
 configure do
@@ -28,7 +29,7 @@ def data_path
 end
 
 def load_file_path
-  file_path = File.join(data_path, File.basename(params[:filename]))
+  File.join(data_path, File.basename(params[:filename]))
 end
 
 def load_file(path)
@@ -38,7 +39,7 @@ def load_file(path)
     headers['Content-Type'] = 'text/plain'
     contents
   when ".md"
-    erb render_markdown(contents)
+    render_markdown(Sanitize.fragment(contents, Sanitize::Config::RELAXED))
   end
 end
 
@@ -56,7 +57,7 @@ def invalid_extension?(extension)
 end
 
 def invalid_characters?(filename)
-  filename.match(/[^A-Za-z0-9._-]/)
+  filename.match(/[^A-Za-z0-9_]/)
 end
 
 def invalid_file?(filename)
@@ -67,7 +68,7 @@ def invalid_file?(filename)
   elsif invalid_extension?(File.extname(filename))
     "Document must be either a '.txt' or '.md' file."
   elsif invalid_characters?(filename)
-    "Name may contain letters, numbers and . _ or - only."
+    "Document name may contain letters, numbers and/or underscore only."
   end
 end
 
@@ -86,10 +87,9 @@ end
 def valid_credentials?(username, password)
   credentials = load_credentials
 
-  if credentials.key?(username)
-    bcrypt_password = BCrypt::Password.new(credentials[username])
-    bcrypt_password == password
-  end
+  return unless credentials.key?(username)
+  bcrypt_password = BCrypt::Password.new(credentials[username])
+  bcrypt_password == password
 end
 
 def user_signed_in?
@@ -111,7 +111,7 @@ def invalid_user_signup?(username)
   elsif existing_username?(username)
     "Username '#{username}' already exists."
   elsif invalid_characters?(username)
-    "Name may contain letters, numbers and . _ or - only."
+    "Username may contain letters, numbers and/or underscore only."
   end
 end
 
@@ -136,7 +136,6 @@ helpers do
     Dir.glob(pattern).map { |file| File.basename(file) }
   end
 end
-
 
 # Get Index Page -----------------------
 get "/" do

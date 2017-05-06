@@ -124,7 +124,7 @@ class CMSTest < Minitest::Test
     post "/new", {filename: "t3&t/test.txt"}, admin_session
 
     assert_equal(422, last_response.status)
-    message = "Name may contain letters, numbers and . _ or - only."
+    message = "Document name may contain letters, numbers and/or underscore only."
     assert_includes(last_response.body, message)
   end
 
@@ -239,7 +239,7 @@ class CMSTest < Minitest::Test
     assert_equal("You must be signed in to do that.", session[:error])
   end
 
-# -----------Test for user signup and sign in----------------------------------
+# -----------Test for user signup ----------------------------------
 
   def test_singup_page
     get "/users/signup"
@@ -268,7 +268,7 @@ class CMSTest < Minitest::Test
     post "/users/signup", username: "<bob*&", password: "password"
 
     assert_equal(422, last_response.status)
-    message = "Name may contain letters, numbers and . _ or - only."
+    message = "Username may contain letters, numbers and/or underscore only."
     assert_includes(last_response.body, message)
     assert_nil(session[:username])
   end
