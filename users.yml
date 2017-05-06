@@ -7,3 +7,4 @@ frankenstein: !ruby/string:BCrypt::Password
   cost: 10
   salt: "$2a$10$BW.6UZTiipn4zV5vb625HO"
   checksum: BN1.I4SPG2Unsfo3XVBcvYC9IIkg2WS
+

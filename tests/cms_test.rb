@@ -42,6 +42,7 @@ class CMSTest < Minitest::Test
     File.open(credentials_path, 'w') { |f| YAML.dump(credentials, f)}
   end
 
+
 # ------- Test Index Page ------------------
   def test_index_page
     create_document("about.md")
@@ -82,7 +83,7 @@ class CMSTest < Minitest::Test
     assert_equal("nofile.txt does not exist", session[:error])
   end
 
-# ------------ Tests for editting document  --------------------
+# ------------ Tests for editing document  --------------------
   def test_edit_page
     create_document("changes.txt")
     get "/changes.txt/edit", {}, admin_session
@@ -137,7 +138,7 @@ class CMSTest < Minitest::Test
   end
 
   def test_create_new_document_with_valid_name
-    post "/new", {filename: "test.txt"}, admin_session
+     post "/new", {filename: "test.txt"}, admin_session
     assert_equal(302, last_response.status)
 
     assert_equal("test.txt was created.", session[:success])

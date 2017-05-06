@@ -5,7 +5,6 @@ require "redcarpet"
 require "yaml"
 require "bcrypt"
 require "sanitize"
-# require 'pry'
 
 configure do
   enable :sessions
@@ -57,7 +56,7 @@ def invalid_extension?(extension)
 end
 
 def invalid_characters?(filename)
-  filename.match(/[^A-Za-z0-9_]/)
+  filename.match(/[^A-Za-z0-9_.]/)
 end
 
 def invalid_file?(filename)

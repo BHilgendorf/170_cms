@@ -14,10 +14,17 @@ body {
 }
 
 form.inline {
-  display: inline;
+  display: inline-block;
 }
 
 .user-status {
   font-style: italic;
   font-size: 0.9em;
 }
+
+div {
+  margin: 10px;
+  width: 260px
+  display: inline;
+}
+
